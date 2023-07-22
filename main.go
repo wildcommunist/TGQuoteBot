@@ -115,22 +115,27 @@ func parseTelegramRequest(r *http.Request) (*Update, error) {
 }
 
 func sanitize(s string) string {
-	if len(s) >= lenStartCommand {
-		if s[:lenStartCommand] == startCommand {
-			s = s[lenStartCommand:]
+	/*
+		// We dont care when we talk 1 on 1
+		if len(s) >= lenStartCommand {
+			if s[:lenStartCommand] == startCommand {
+				s = s[lenStartCommand:]
+			}
 		}
-	}
-
+	*/
 	if len(s) >= lenPunchCommand {
 		if s[:lenPunchCommand] == punchCommand {
 			s = s[lenPunchCommand:]
 		}
 	}
+
+	// we dont care about tagging either
 	if len(s) >= lenBotTag {
 		if s[:lenBotTag] == botTag {
 			s = s[lenBotTag:]
 		}
 	}
+	log.Debug().Str("input", s).Msg("sanitized input")
 	return s
 }
 
@@ -146,6 +151,12 @@ func HandleTelegramWebHook(w http.ResponseWriter, r *http.Request) {
 
 	// Sanitize input
 	var sanitizedSeed = sanitize(update.Message.Text)
+
+	if len(sanitizedSeed) != 0 {
+		// we are being quotes or whatever, ignore
+		log.Debug().Msg("we are being quoted or maybe starting a conversation, ignoring")
+		return
+	}
 
 	// Call RapLyrics to get a punchline
 	var lyric, errRandomQuote = getPunchline(sanitizedSeed)
